@@ -32,7 +32,7 @@ CREATE TABLE dataFileTable (
     fileId SERIAL PRIMARY KEY,
     clusterId int REFERENCES clusterTable(clusterId) ON DELETE CASCADE,
     fileName text NOT NULL,
-    uploader varchar(20) NOT NULL,
+    uploader varchar(20) NOT NULL, -- currently unused, but in the real system recording the file uploader is important XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     uploadDate date,
     fileSize varchar(20),
 	UNIQUE(clusterId, fileName));
@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION getBoardClusters(inputModuleName varchar(20))
             dataFileTable.fileSize
         FROM
             clusterTable
-        INNER JOIN dataFileTable ON clusterTable.clusterId = dataFileTable.clusterId
+        FULL OUTER JOIN dataFileTable ON clusterTable.clusterId = dataFileTable.clusterId
         WHERE clusterTable.moduleName = inputModuleName
     $$;
 	
@@ -146,11 +146,29 @@ CREATE OR REPLACE FUNCTION getFile(inputFileId int)
     $$;
 	
 CREATE OR REPLACE FUNCTION addCluster(inputModuleName varchar(20), inputDisplayTitle text, inputDescription text)
-		RETURNS VOID
+		RETURNS TABLE (clusterId int,
+				  moduleName varchar(20),
+				  displayTitle text,
+				  clusterDescription text)
 		LANGUAGE SQL
 		AS $$
 			INSERT INTO clusterTable (moduleName, displayTitle, clusterDescription) 
 			VALUES (inputModuleName, inputDisplayTitle, inputDescription)
+			returning *;
+		$$;
+		
+CREATE OR REPLACE FUNCTION modifyCluster(inputClusterId int, inputDisplayTitle text, inputDescription text)
+		RETURNS TABLE (clusterId int,
+				  moduleName varchar(20),
+				  displayTitle text,
+				  clusterDescription text)
+		LANGUAGE SQL
+		AS $$
+			    UPDATE clusterTable
+				SET displayTitle       = inputDisplayTitle,
+				    clusterDescription = inputDescription
+				WHERE clusterId        = inputClusterId
+				returning *;
 		$$;
 	
 CREATE OR REPLACE FUNCTION addFile(inputClusterId int, inputFileName text, inputUploader varchar(20), inputUploadDate date, inputFileSize varchar(20))
@@ -199,15 +217,19 @@ CREATE OR REPLACE FUNCTION deleteFile(inputFileId int)
 CREATE USER student WITH PASSWORD 'student';
 CREATE USER tutor WITH PASSWORD 'tutor';
 
-
 REVOKE ALL PRIVILEGES ON TABLE dataFileTable FROM tutor;
 GRANT ALL PRIVILEGES ON TABLE dataFileTable TO tutor;
 
+REVOKE ALL PRIVILEGES ON TABLE clusterTable FROM tutor;
+GRANT ALL PRIVILEGES ON TABLE clusterTable TO tutor;
+
 GRANT EXECUTE ON FUNCTION getBoardClusters(varchar(20)) TO tutor;
-GRANT SELECT ON TABLE clusterTable TO tutor;
 
 REVOKE ALL PRIVILEGES ON SEQUENCE datafiletable_fileid_seq FROM tutor;
 GRANT ALL PRIVILEGES ON SEQUENCE datafiletable_fileid_seq TO tutor;
+
+REVOKE ALL PRIVILEGES ON SEQUENCE clusterTable_clusterid_seq FROM tutor;
+GRANT ALL PRIVILEGES ON SEQUENCE clusterTable_clusterid_seq TO tutor;
 
 GRANT ALL PRIVILEGES ON DATABASE datafiledb TO tutor;
 
@@ -223,16 +245,19 @@ INSERT INTO boardTable
 INSERT INTO clusterTable (moduleName, displayTitle, clusterDescription)
     VALUES ('WM300', 'Assessment Datafiles', 'please read through the assessment brief and cover sheet carefully before starting your assessment'),
            ('WM300', 'Lecture Slides', 'New lecture slides will be uploaded after each lecture'),
+		   ('WM300', 'Excerises', 'Please complete these excerises in time for the next session'),
            ('WM350', 'Assessment Datafiles', 'please read through the assessment brief and cover sheet carefully before starting your assessment'),
-           ('WM350', 'Lecture Slides', 'New lecture slides will be uploaded after each lecture');
+           ('WM350', 'Lecture Slides', 'New lecture slides will be uploaded after each lecture'),
+		   ('WM350', 'Excerises', 'Please complete these excerises in time for the next session');
+
 
 INSERT INTO datafileTable (clusterId, fileName, uploader, uploadDate, fileSize)
     VALUES (1, 'assessemnt_brief.pdf', 'u100', '12.1.2022', '300Kb'),
            (1, 'assessemnt_frontSheet.docx', 'u100', '12.1.2022', '200Kb'),
            (2, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '400Kb'),
            (2, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '360Kb'),
-           (3, 'assessemnt_brief.pdf', 'u100', '12.1.2022', '230Kb'),
-           (3, 'assessemnt_frontSheet.docx', 'u100', '12.1.2022', '180Kb'),
-           (4, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '450Kb'),
-           (4, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '320Kb');
+           (4, 'assessemnt_brief.pdf', 'u100', '12.1.2022', '230Kb'),
+           (4, 'assessemnt_frontSheet.docx', 'u100', '12.1.2022', '180Kb'),
+           (5, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '450Kb'),
+           (5, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '320Kb');
 
