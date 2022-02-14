@@ -1,3 +1,8 @@
+----- Meta-Data Database Set up script
+
+-- Make sure to create the database before running this script. 
+
+-- These drop commands make it simple to re-initialise the database. simply rerun this script. 
 DROP TABLE IF EXISTS dataFileTable;
 DROP TABLE IF EXISTS clusterTable;
 DROP TABLE IF EXISTS boardTable;
@@ -8,7 +13,7 @@ REVOKE ALL PRIVILEGES ON DATABASE datafiledb FROM backendapp;
 DROP USER IF EXISTS backendapp;
 
 
-
+-- Database tables
 CREATE TABLE boardTable (
     moduleName varchar(20) PRIMARY KEY,
     boardOwnerId varchar(20));
@@ -29,6 +34,9 @@ CREATE TABLE dataFileTable (
 	downloadCounter int,
 	UNIQUE(clusterId, fileName));
 
+-- database Functions
+
+-- Gets the data require to display the datafile board page. 
 CREATE OR REPLACE FUNCTION getBoardClusters(inputModuleName varchar(20))
     RETURNS TABLE(clusterId int,
                   moduleName varchar(20),
@@ -58,7 +66,8 @@ CREATE OR REPLACE FUNCTION getBoardClusters(inputModuleName varchar(20))
         FULL OUTER JOIN dataFileTable ON clusterTable.clusterId = dataFileTable.clusterId
         WHERE clusterTable.moduleName = inputModuleName
     $$;
-	
+
+-- Gets all the files for a given cluster.	
 CREATE OR REPLACE FUNCTION getClusterFiles(inputClusterId int)
     RETURNS TABLE(clusterId int,
                   fileId int,
@@ -81,7 +90,8 @@ CREATE OR REPLACE FUNCTION getClusterFiles(inputClusterId int)
             dataFileTable
         WHERE dataFileTable.clusterId = inputClusterId
     $$;
-	
+
+-- Checks to see if a given cluster contains the file.
 CREATE OR REPLACE FUNCTION checkClusterContainsFile(inputClusterId int, inputFileId int)
     RETURNS TABLE(clusterId int,
                   fileId int,
@@ -104,7 +114,8 @@ CREATE OR REPLACE FUNCTION checkClusterContainsFile(inputClusterId int, inputFil
             dataFileTable
         WHERE dataFileTable.fileId = inputfileId AND dataFileTable.clusterId = inputClusterId
     $$;
-	
+
+-- Gets a cluster row from the cluster table.	
 CREATE OR REPLACE FUNCTION getCluster(inputClusterId int)
     RETURNS TABLE(clusterId int,
 				  moduleName varchar(20),
@@ -121,7 +132,8 @@ CREATE OR REPLACE FUNCTION getCluster(inputClusterId int)
             clusterTable
         WHERE clusterTable.clusterId = inputClusterId
     $$;
-	
+
+-- Gets a row from the datafile table.	
 CREATE OR REPLACE FUNCTION getFile(inputFileId int)
     RETURNS TABLE(clusterId int,
                   fileId int,
@@ -145,6 +157,7 @@ CREATE OR REPLACE FUNCTION getFile(inputFileId int)
         WHERE dataFileTable.fileId = inputfileId
     $$;
 	
+-- Incraments the file download counter.	
 CREATE OR REPLACE FUNCTION incramentFileDownloadCounter(inputFileId int)
     RETURNS VOID
     LANGUAGE SQL
@@ -154,7 +167,8 @@ CREATE OR REPLACE FUNCTION incramentFileDownloadCounter(inputFileId int)
 			downloadCounter = dataFileTable.downloadCounter + 1
         WHERE dataFileTable.fileId = inputfileId
     $$;
-	
+
+-- Adds a cluster to the db.	
 CREATE OR REPLACE FUNCTION addCluster(inputModuleName varchar(20), inputDisplayTitle text, inputDescription text)
 		RETURNS TABLE (clusterId int,
 				  moduleName varchar(20),
@@ -166,7 +180,8 @@ CREATE OR REPLACE FUNCTION addCluster(inputModuleName varchar(20), inputDisplayT
 			VALUES (inputModuleName, inputDisplayTitle, inputDescription)
 			returning *;
 		$$;
-		
+
+-- Allows for modification of the cluster title and description properties.		
 CREATE OR REPLACE FUNCTION modifyCluster(inputClusterId int, inputDisplayTitle text, inputDescription text)
 		RETURNS TABLE (clusterId int,
 				  moduleName varchar(20),
@@ -180,7 +195,8 @@ CREATE OR REPLACE FUNCTION modifyCluster(inputClusterId int, inputDisplayTitle t
 				WHERE clusterId        = inputClusterId
 				returning *;
 		$$;
-	
+
+-- Adds a file to the db
 CREATE OR REPLACE FUNCTION addFile(inputClusterId int, inputFileName text, inputUploader varchar(20), inputUploadDate varchar(20), inputFileSize varchar(20), inputDownloadCounter int)
 		RETURNS VOID
 		LANGUAGE SQL
@@ -189,6 +205,7 @@ CREATE OR REPLACE FUNCTION addFile(inputClusterId int, inputFileName text, input
 			VALUES (inputClusterId, inputFileName, inputUploader, inputUploadDate, inputFileSize, inputDownloadCounter)
 		$$;
 
+-- Deletes a board from the db.
 CREATE OR REPLACE FUNCTION deleteBoard(inputModuleName varchar(20))
 	RETURNS VOID
     LANGUAGE SQL
@@ -197,6 +214,7 @@ CREATE OR REPLACE FUNCTION deleteBoard(inputModuleName varchar(20))
         WHERE boardTable.moduleName = inputModuleName
     $$;
 
+-- Deletes a cluster from the db.
 CREATE OR REPLACE FUNCTION deleteCluster(inputClusterId int)
 	RETURNS TABLE(clusterId int,
 				  moduleName varchar(20),
@@ -209,6 +227,7 @@ CREATE OR REPLACE FUNCTION deleteCluster(inputClusterId int)
 		returning *;
     $$;
 	
+-- Deletes a file from the db.	
 CREATE OR REPLACE FUNCTION deleteFile(inputFileId int)
     RETURNS TABLE (fileId int,
 				   clusterId int,
@@ -224,8 +243,9 @@ CREATE OR REPLACE FUNCTION deleteFile(inputFileId int)
 		returning *;
     $$;
 
-
-
+-- Sets up privileges so that the backend can comunicate with the db.
+-- RBAC user access control is controlled externally.
+-- A future improvement would be to add logging to the db which records which users are driving backend requests.
 CREATE USER backendApp WITH PASSWORD 'backendapp';
 
 REVOKE ALL PRIVILEGES ON TABLE dataFileTable FROM backendApp;
@@ -244,6 +264,7 @@ GRANT ALL PRIVILEGES ON SEQUENCE clusterTable_clusterid_seq TO backendApp;
 
 GRANT ALL PRIVILEGES ON DATABASE datafiledb TO backendApp;
 
+-- Test data values.
 INSERT INTO boardTable
     VALUES ('WM300', 'u100'),
            ('WM350', 'u200');
@@ -258,12 +279,12 @@ INSERT INTO clusterTable (moduleName, displayTitle, clusterDescription)
 
 
 INSERT INTO datafileTable (clusterId, fileName, uploader, uploadDate, fileSize, downloadCounter)
-    VALUES (1, 'assessement_brief.pdf', 'u100', '12.1.2022', '300KB', 0),
-           (1, 'assessement_frontSheet.docx', 'u100', '12.1.2022', '200KB', 0),
+    VALUES (1, 'assessment_brief.pdf', 'u100', '12.1.2022', '300KB', 0),
+           (1, 'assessment_frontSheet.docx', 'u100', '12.1.2022', '200KB', 0),
            (2, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '400KB', 0),
            (2, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '360KB', 0),
-           (4, 'assessement_brief.pdf', 'u100', '12.1.2022', '230KB', 0),
-           (4, 'assessement_frontSheet.docx', 'u100', '12.1.2022', '180KB', 0),
+           (4, 'assessment_brief.pdf', 'u100', '12.1.2022', '230KB', 0),
+           (4, 'assessment_frontSheet.docx', 'u100', '12.1.2022', '180KB', 0),
            (5, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '450KB', 0),
            (5, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '320KB', 0);
 
