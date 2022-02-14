@@ -1,18 +1,11 @@
--- \i "C:/Users/jackg/Documents/Warwick Work/Software Dev Lifecycle/SDLC Assessment 2/WMGTSS-Database/create_database_script.sql"
-
---createdb datafileDB postgres
-
---\c datafileDB;
-
 DROP TABLE IF EXISTS dataFileTable;
 DROP TABLE IF EXISTS clusterTable;
 DROP TABLE IF EXISTS boardTable;
 DROP FUNCTION IF EXISTS getBoardClusters;
 
-REVOKE ALL PRIVILEGES ON DATABASE datafiledb FROM tutor;
+REVOKE ALL PRIVILEGES ON DATABASE datafiledb FROM backendapp;
 
-DROP USER IF EXISTS student;
-DROP USER IF EXISTS tutor;
+DROP USER IF EXISTS backendapp;
 
 
 
@@ -26,13 +19,11 @@ CREATE TABLE clusterTable (
     displayTitle text,
     clusterDescription text);
 
-
--- how should datafiles relate to data boards and clusters
 CREATE TABLE dataFileTable (
     fileId SERIAL PRIMARY KEY,
     clusterId int REFERENCES clusterTable(clusterId) ON DELETE CASCADE,
     fileName text NOT NULL,
-    uploader varchar(20) NOT NULL, -- currently unused, but in the real system recording the file uploader is important XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    uploader varchar(20) NOT NULL,
     uploadDate varchar(20),
     fileSize varchar(20),
 	downloadCounter int,
@@ -234,29 +225,24 @@ CREATE OR REPLACE FUNCTION deleteFile(inputFileId int)
     $$;
 
 
-CREATE USER student WITH PASSWORD 'student';
-CREATE USER tutor WITH PASSWORD 'tutor';
 
-REVOKE ALL PRIVILEGES ON TABLE dataFileTable FROM tutor;
-GRANT ALL PRIVILEGES ON TABLE dataFileTable TO tutor;
+CREATE USER backendApp WITH PASSWORD 'backendapp';
 
-REVOKE ALL PRIVILEGES ON TABLE clusterTable FROM tutor;
-GRANT ALL PRIVILEGES ON TABLE clusterTable TO tutor;
+REVOKE ALL PRIVILEGES ON TABLE dataFileTable FROM backendApp;
+GRANT ALL PRIVILEGES ON TABLE dataFileTable TO backendApp;
 
-GRANT EXECUTE ON FUNCTION getBoardClusters(varchar(20)) TO tutor;
+REVOKE ALL PRIVILEGES ON TABLE clusterTable FROM backendApp;
+GRANT ALL PRIVILEGES ON TABLE clusterTable TO backendApp;
 
-REVOKE ALL PRIVILEGES ON SEQUENCE datafiletable_fileid_seq FROM tutor;
-GRANT ALL PRIVILEGES ON SEQUENCE datafiletable_fileid_seq TO tutor;
+GRANT EXECUTE ON FUNCTION getBoardClusters(varchar(20)) TO backendApp;
 
-REVOKE ALL PRIVILEGES ON SEQUENCE clusterTable_clusterid_seq FROM tutor;
-GRANT ALL PRIVILEGES ON SEQUENCE clusterTable_clusterid_seq TO tutor;
+REVOKE ALL PRIVILEGES ON SEQUENCE datafiletable_fileid_seq FROM backendApp;
+GRANT ALL PRIVILEGES ON SEQUENCE datafiletable_fileid_seq TO backendApp;
 
-GRANT ALL PRIVILEGES ON DATABASE datafiledb TO tutor;
+REVOKE ALL PRIVILEGES ON SEQUENCE clusterTable_clusterid_seq FROM backendApp;
+GRANT ALL PRIVILEGES ON SEQUENCE clusterTable_clusterid_seq TO backendApp;
 
-GRANT EXECUTE ON FUNCTION getBoardClusters(varchar(20)) TO student;
---GRANT EXECUTE ON FUNCTION getBoardClusters(varchar(20)) TO student;
-GRANT SELECT ON TABLE clusterTable TO student;
-GRANT SELECT ON TABLE datafileTable TO student;
+GRANT ALL PRIVILEGES ON DATABASE datafiledb TO backendApp;
 
 INSERT INTO boardTable
     VALUES ('WM300', 'u100'),
@@ -272,12 +258,12 @@ INSERT INTO clusterTable (moduleName, displayTitle, clusterDescription)
 
 
 INSERT INTO datafileTable (clusterId, fileName, uploader, uploadDate, fileSize, downloadCounter)
-    VALUES (1, 'assessemnt_brief.pdf', 'u100', '12.1.2022', '300Kb', 0),
-           (1, 'assessemnt_frontSheet.docx', 'u100', '12.1.2022', '200Kb', 0),
-           (2, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '400Kb', 0),
-           (2, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '360Kb', 0),
-           (4, 'assessemnt_brief.pdf', 'u100', '12.1.2022', '230Kb', 0),
-           (4, 'assessemnt_frontSheet.docx', 'u100', '12.1.2022', '180Kb', 0),
-           (5, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '450Kb', 0),
-           (5, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '320Kb', 0);
+    VALUES (1, 'assessement_brief.pdf', 'u100', '12.1.2022', '300KB', 0),
+           (1, 'assessement_frontSheet.docx', 'u100', '12.1.2022', '200KB', 0),
+           (2, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '400KB', 0),
+           (2, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '360KB', 0),
+           (4, 'assessement_brief.pdf', 'u100', '12.1.2022', '230KB', 0),
+           (4, 'assessement_frontSheet.docx', 'u100', '12.1.2022', '180KB', 0),
+           (5, 'lectureSlides_1.pptx', 'u100', '12.1.2022', '450KB', 0),
+           (5, 'lectureSlides_2.pptx', 'u100', '12.1.2022', '320KB', 0);
 
